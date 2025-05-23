@@ -1,0 +1,16 @@
+These word embeddings are derived from the GloVe embeddings from the Spanish Billion Word Corpus (SBWC), created by Jorge Pérez and available at:
+https://github.com/dccuchile/spanish-word-embeddings
+
+They are licensed under the Creative Commons Attribution 4.0 International License (CC BY 4.0):
+https://creativecommons.org/licenses/by/4.0/
+
+The vocabulary used to filter these embeddings is based on:
+HermitDave’s FrequencyWords project (Spanish 50k list)
+https://github.com/hermitdave/FrequencyWords/blob/master/content/2018/es/es_50k.txt
+Licensed under the MIT License:
+https://opensource.org/licenses/MIT
+
+Modifications made:
+- Filtered the SBWC GloVe embeddings to include only the 50,000 most frequent words in Spanish.
+- Normalized words using the `unidecode` Python package to remove accents and diacritics.
+- Saved the result in a plain text GloVe-style format for broad compatibility.
