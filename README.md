@@ -15,87 +15,62 @@ First, here's the core functionality to download and load the embeddings:
 
 ```python
 import os
+import requests
 import gzip
 import numpy as np
-import requests
-from typing import Dict, Optional
 
-def download_embeddings(url: str, file_path: str) -> None:
+# Configuration
+url = "https://raw.githubusercontent.com/fbereilh/spanish-word-embeddings/main/spanish_glove_embeddings.txt.gz"
+file_path = os.path.basename(url)
+
+def download_embeddings(file_path: str = file_path, url: str = url):
     """Download the embeddings file if it doesn't exist."""
     if not os.path.exists(file_path):
         print(f"Downloading embeddings to {file_path}...")
-        response = requests.get(url)
-        with open(file_path, "wb") as f:
-            f.write(response.content)
-        print("Download complete!")
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            with open(file_path, "wb") as f:
+                f.write(response.content)
+            print("Download complete!")
+        except requests.RequestException as e:
+            print(f"Download failed: {e}")
 
-def load_embeddings(file_path: str = 'spanish_glove_embeddings.txt.gz') -> Dict[str, np.ndarray]:
+def load_embeddings(file_path: str = file_path):
     """Load word embeddings from a gzipped file."""
-    # URL of the embeddings file in the repository
-    url = "https://raw.githubusercontent.com/fbereilh/spanish-word-embeddings/main/spanish_glove_embeddings.txt.gz"
-    
-    # Download the file if it doesn't exist
-    download_embeddings(url, file_path)
-    
-    # Dictionary to store word vectors
     word_vectors = {}
-    
-    # Read the gzipped file
+
     print("Loading embeddings...")
     with gzip.open(file_path, 'rt', encoding='utf-8') as f:
         for line in f:
             values = line.strip().split()
-            word = values[0]
-            vector = np.asarray(values[1:], dtype='float32')
+            if not values:
+                continue
+            word, *vector_values = values
+            vector = np.asarray(vector_values, dtype='float32')
             word_vectors[word] = vector
-    
+
     print(f"Loaded {len(word_vectors)} word vectors!")
     return word_vectors
 
-def find_similar_words(word: str, embeddings: Dict[str, np.ndarray], n: int = 5) -> Optional[list]:
-    """Find n most similar words to the given word using cosine similarity."""
-    if word not in embeddings:
-        print(f"Word '{word}' not found in embeddings.")
-        return None
-    
-    # Get the vector for the input word
-    word_vector = embeddings[word]
-    
-    # Calculate cosine similarity with all words
-    similarities = {}
-    for other_word, other_vector in embeddings.items():
-        if other_word != word:
-            similarity = np.dot(word_vector, other_vector) / (
-                np.linalg.norm(word_vector) * np.linalg.norm(other_vector)
-            )
-            similarities[other_word] = similarity
-    
-    # Sort by similarity and get top n
-    similar_words = sorted(similarities.items(), key=lambda x: x[1], reverse=True)[:n]
-    return similar_words
+
+download_embeddings()
+embeddings = load_embeddings()
+
 ```
 
 Here's an example of how to use these functions:
 
 ```python
-# Load the embeddings
-embeddings = load_embeddings()
-
 # Example 1: Get vector for a word
 word = "hola"
 vector = embeddings.get(word)
 print(f"\nVector for '{word}':")
 print(vector[:10], "...")  # Show first 10 dimensions
 
-# Example 2: Find similar words
-similar = find_similar_words(word, embeddings)
-if similar:
-    print(f"\nWords most similar to '{word}':")
-    for word, similarity in similar:
-        print(f"{word}: {similarity:.4f}")
-
-# Example 3: Custom usage - Calculate similarity between two specific words
+# Example 2: Calculate similarity between two words
 def word_similarity(word1: str, word2: str, embeddings: Dict[str, np.ndarray]) -> Optional[float]:
+    """Calculate cosine similarity between two words."""
     if word1 not in embeddings or word2 not in embeddings:
         return None
     vec1 = embeddings[word1]
@@ -106,6 +81,30 @@ def word_similarity(word1: str, word2: str, embeddings: Dict[str, np.ndarray]) -
 similarity = word_similarity("hombre", "mujer", embeddings)
 if similarity:
     print(f"\nSimilarity between 'hombre' and 'mujer': {similarity:.4f}")
+
+# Example 3: Find similar words
+def find_similar_words(word: str, embeddings: Dict[str, np.ndarray], n: int = 5) -> Optional[list]:
+    """Find n most similar words to the given word."""
+    if word not in embeddings:
+        return None
+    
+    similarities = []
+    word_vector = embeddings[word]
+    
+    for other_word, other_vector in embeddings.items():
+        if other_word != word:
+            similarity = word_similarity(word, other_word, embeddings)
+            if similarity:
+                similarities.append((other_word, similarity))
+    
+    return sorted(similarities, key=lambda x: x[1], reverse=True)[:n]
+
+# Find words similar to "casa"
+similar_words = find_similar_words("casa", embeddings)
+if similar_words:
+    print("\nWords similar to 'casa':")
+    for word, sim in similar_words:
+        print(f"{word}: {sim:.4f}")
 ```
 
 The embeddings are in GloVe format where each line contains a word followed by its 300-dimensional vector representation. The code above provides functionality for:
