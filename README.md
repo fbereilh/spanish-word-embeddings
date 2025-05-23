@@ -11,7 +11,7 @@ Additionally, the vocabulary was filtered using the [Spanish word frequency list
 
 ### Using the Embeddings in Python
 
-Here's a complete script to download and use the embeddings:
+First, here's the core functionality to download and load the embeddings:
 
 ```python
 import os
@@ -73,27 +73,42 @@ def find_similar_words(word: str, embeddings: Dict[str, np.ndarray], n: int = 5)
     # Sort by similarity and get top n
     similar_words = sorted(similarities.items(), key=lambda x: x[1], reverse=True)[:n]
     return similar_words
-
-# Example usage:
-if __name__ == "__main__":
-    # Load embeddings
-    embeddings = load_embeddings()
-    
-    # Example 1: Get vector for a word
-    word = "hola"
-    vector = embeddings.get(word)
-    print(f"\nVector for '{word}':")
-    print(vector[:10], "...")  # Show first 10 dimensions
-    
-    # Example 2: Find similar words
-    similar = find_similar_words(word, embeddings)
-    if similar:
-        print(f"\nWords most similar to '{word}':")
-        for word, similarity in similar:
-            print(f"{word}: {similarity:.4f}")
 ```
 
-The embeddings are in GloVe format where each line contains a word followed by its 300-dimensional vector representation. The script above provides functionality for:
+Here's an example of how to use these functions:
+
+```python
+# Load the embeddings
+embeddings = load_embeddings()
+
+# Example 1: Get vector for a word
+word = "hola"
+vector = embeddings.get(word)
+print(f"\nVector for '{word}':")
+print(vector[:10], "...")  # Show first 10 dimensions
+
+# Example 2: Find similar words
+similar = find_similar_words(word, embeddings)
+if similar:
+    print(f"\nWords most similar to '{word}':")
+    for word, similarity in similar:
+        print(f"{word}: {similarity:.4f}")
+
+# Example 3: Custom usage - Calculate similarity between two specific words
+def word_similarity(word1: str, word2: str, embeddings: Dict[str, np.ndarray]) -> Optional[float]:
+    if word1 not in embeddings or word2 not in embeddings:
+        return None
+    vec1 = embeddings[word1]
+    vec2 = embeddings[word2]
+    return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+
+# Calculate similarity between "hombre" and "mujer"
+similarity = word_similarity("hombre", "mujer", embeddings)
+if similarity:
+    print(f"\nSimilarity between 'hombre' and 'mujer': {similarity:.4f}")
+```
+
+The embeddings are in GloVe format where each line contains a word followed by its 300-dimensional vector representation. The code above provides functionality for:
 - Automatically downloading the embeddings from this repository
 - Loading the embeddings into a dictionary
 - Finding similar words using cosine similarity
