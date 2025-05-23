@@ -192,6 +192,49 @@ class EmbeddingsProcessor:
         print(f"Loaded {len(vocab_list):,} word vectors.")
         return vocab_list, word_to_idx, embedding_tensor
 
+    def save_embeddings_txt(
+        self,
+        path: str = 'spanish_glove_embeddings.txt',
+        vocab_list: Optional[List[str]] = None,
+        word_to_idx: Optional[Dict[str, int]] = None,
+        embedding_tensor: Optional[torch.FloatTensor] = None
+    ) -> bool:
+        """
+        Save embeddings to a text file in GloVe format.
+        
+        Args:
+            path: Path to save the embeddings file
+            vocab_list: List of vocabulary words (uses self.vocab if None)
+            word_to_idx: Dictionary mapping words to indices (uses self.word_to_idx if None)
+            embedding_tensor: PyTorch tensor of embeddings (uses self.embedding_tensor if None)
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Use instance variables if not provided
+            vocab_list = vocab_list or self.vocab
+            word_to_idx = word_to_idx or self.word_to_idx
+            embedding_tensor = embedding_tensor or self.embedding_tensor
+
+            if not all([vocab_list, word_to_idx, embedding_tensor]):
+                print("Error: Embeddings not loaded. Run process() first.")
+                return False
+
+            print(f"Saving embeddings to {path}...")
+            with open(path, 'w', encoding='utf-8') as f:
+                for word in tqdm(vocab_list, desc="Writing embeddings"):
+                    vec = embedding_tensor[word_to_idx[word]].numpy()
+                    vec_str = ' '.join(map(str, vec))
+                    f.write(f"{word} {vec_str}\n")
+            
+            print(f"Successfully saved embeddings to {path}")
+            return True
+
+        except Exception as e:
+            print(f"Failed to save embeddings: {e}")
+            return False
+
     def process(self) -> bool:
         """
         Run the complete embeddings processing pipeline.
@@ -213,12 +256,16 @@ class EmbeddingsProcessor:
                 filepath=filepath,
                 vocab=self.vocab
             )
+
+            # Save processed embeddings
+            if not self.save_embeddings_txt():
+                print("Warning: Failed to save embeddings, but processing completed.")
+
             return True
 
         except Exception as e:
             print(f"Processing failed: {e}")
             return False
-
 
 
 processor = EmbeddingsProcessor()
